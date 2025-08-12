@@ -1,0 +1,29 @@
+{
+  "text": {
+    "i": 8,
+    "want": 16,
+    "to": 14,
+    "apply": 1,
+    "for": 4,
+    "leave": 9,
+    "can": 2,
+    "take": 12,
+    "a": 0,
+    "day": 3,
+    "off": 11,
+    "need": 10,
+    "tomorrow": 15,
+    "hi": 7,
+    "hello": 5,
+    "hey": 6,
+    "there": 13
+  },
+  "intent": {
+    "apply_leave": 0,
+    "greet": 1
+  },
+  "response": null,
+  "action_name": null,
+  "action_text": null,
+  "intent_response_key": null
+}

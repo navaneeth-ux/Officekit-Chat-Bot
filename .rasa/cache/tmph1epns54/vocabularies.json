@@ -1,0 +1,42 @@
+{
+  "text": {
+    "i": 8,
+    "want": 16,
+    "to": 14,
+    "apply": 1,
+    "for": 4,
+    "leave": 9,
+    "can": 2,
+    "take": 12,
+    "a": 0,
+    "day": 3,
+    "off": 11,
+    "need": 10,
+    "tomorrow": 15,
+    "hi": 7,
+    "hello": 5,
+    "hey": 6,
+    "there": 13
+  },
+  "intent": {
+    "apply_leave": 0,
+    "greet": 1
+  },
+  "response": null,
+  "action_name": {
+    "action_listen": 6,
+    "action_restart": 7,
+    "action_session_start": 9,
+    "action_default_fallback": 4,
+    "action_deactivate_loop": 1,
+    "action_revert_fallback_events": 8,
+    "action_default_ask_affirmation": 2,
+    "action_default_ask_rephrase": 3,
+    "action_two_stage_fallback": 10,
+    "action_unlikely_intent": 11,
+    "action_back": 0,
+    "action_extract_slots": 5
+  },
+  "action_text": null,
+  "intent_response_key": null
+}

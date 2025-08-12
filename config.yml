@@ -1,0 +1,7 @@
+language: en
+pipeline:
+- name: WhitespaceTokenizer
+- name: CountVectorsFeaturizer
+- name: DIETClassifier
+  epochs: 100
+assistant_id: 20250807-134648-alternate-cadet

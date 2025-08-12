@@ -1,0 +1,35 @@
+version: "3.1"
+nlu:
+- intent: apply_leave
+  examples: |
+    - I want to apply for leave
+    - Can I take a day off?
+    - I need leave tomorrow
+    - Please approve my vacation request
+    - I’d like to request sick leave
+    - Can I take next Friday off?
+    - I need a personal day off
+    - I want to apply for 3 days leave starting Monday
+    - Can I get a week off next month?
+    - I need annual leave from 5th to 10th
+
+
+- intent: greet
+  examples: |
+    - Hi
+    - Hello
+    - Hey there
+
+- intent: available_leaves
+  examples: |
+    - How many leaves do I have left?
+    - Show me my remaining leave balance
+    - I want to know my available leaves.
+    - What is my available leave?
+    - Tell me how many leave days I can take
+    - Do I have any leaves left?
+    - Check my leave balance
+    - Can I take more leave?
+    - What's my remaining leave quota?
+    - How much time off do I have left?
+    - Am I eligible for more leave days?
