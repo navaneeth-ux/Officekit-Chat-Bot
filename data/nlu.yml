@@ -5,7 +5,9 @@ nlu:
     - I want to apply for leave
     - Can I take a day off?
     - I need leave tomorrow
-    - Please approve my vacation request
+    - Please a
+    
+    pprove my vacation request
     - I’d like to request sick leave
     - Can I take next Friday off?
     - I need a personal day off
@@ -20,8 +22,12 @@ nlu:
     - Hello
     - Hey there
 
+
+
+
 - intent: available_leaves
   examples: |
+    - my all leaves
     - How many leaves do I have left?
     - Show me my remaining leave balance
     - I want to know my available leaves.
@@ -33,3 +39,45 @@ nlu:
     - What's my remaining leave quota?
     - How much time off do I have left?
     - Am I eligible for more leave days?
+
+- intent: available_casual_leaves
+  examples: |
+    - I want to know the casual leaves left
+    - How many casual leaves do I have?
+    - Tell me my casual leave balance
+    - Show my CL leaves
+    - CL leave balance
+    - What is my casual leave balance?
+        # ASR / spelling mistakes
+    - How many cashier leaves do I have?
+    - Tell me my casher leave balance
+    - How many casualy leaves are there?
+
+
+- intent: available_com_leaves
+  examples: |
+    - How many compensatory leaves do I have?
+    - Show my COM leave balance
+    - COM leave status
+    - Tell me my COM leaves
+
+- intent: available_sl_leaves
+  examples: |
+    - How many sick leaves do I have?
+    - Show my SL leave balance
+    - Tell me my SL leaves
+    - SL leave status
+
+- intent: available_lop_leaves
+  examples: |
+    - How many loss of pay leaves do I have?
+    - Show my LOP leave balance
+    - Tell me my LOP leaves
+    - LOP leave status
+
+- synonym: casual leave
+  examples: |
+    - cashier leave
+    - casual leaf
+    - cassual leave
+
