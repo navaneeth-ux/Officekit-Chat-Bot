@@ -39,6 +39,7 @@ nlu:
     - What's my remaining leave quota?
     - How much time off do I have left?
     - Am I eligible for more leave days?
+    - how many leaves available 
 
 - intent: available_casual_leaves
   examples: |
@@ -63,10 +64,24 @@ nlu:
 
 - intent: available_sl_leaves
   examples: |
-    - How many sick leaves do I have?
-    - Show my SL leave balance
-    - Tell me my SL leaves
-    - SL leave status
+    - sick leaves left
+    - Show me my sick leaves
+    - Do I have sick leave left?
+    - How many sick days do I have?
+    - SL balance
+    - Tell me my sick leave quota
+    - I want to check sick leaves
+    - Remaining SL leaves
+
+- synonym: sick leave
+  examples: |
+    - sick leaf
+    - SL leave
+    - sl leaves
+    - sick day
+    - medical leave
+
+
 
 - intent: available_lop_leaves
   examples: |
@@ -80,4 +95,28 @@ nlu:
     - cashier leave
     - casual leaf
     - cassual leave
+
+- intent: pay_slip
+  examples: |
+    - Show me my payslip
+    - I want to see my salary slip
+    - Download my payslip
+    - Can I get my monthly payslip?
+    - Please send me my payslip for this month
+    - I need my salary details
+    - Give me my payslip for August
+    - Where can I check my payslip?
+    - Show my last month’s salary slip
+    - I want to download my salary slip
+    - Can you fetch my payslip?
+    - Get my payslip for 2025
+    - Generate my salary slip
+    - I need my pay slip for this year
+    - Please provide my payslip
+    - Send me the payslip for July
+    - Payslip download
+    - Salary slip request
+    - Show me my earnings slip
+    - Can I view my pay slip?
+
 

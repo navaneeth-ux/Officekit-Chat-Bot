@@ -42,6 +42,7 @@ def load_model():
         whisper_model = whisper.load_model("tiny")
        # whisper_model = whisper.load_model("small")
 
+
     except Exception as e:
         print(f"❌ Failed to load Whisper model: {e}")
         whisper_model = None
@@ -104,7 +105,6 @@ def format_leave_response(leave_data, code, leave_name):
 
 # 🔹 Handle all leave-related intents
 async def handle_leave_intent(intent, OfficeContent, Commonparam):
-    leave_data = await fetch_leave_summary(OfficeContent, Commonparam)
 
     leave_map = {
         "available_casual_leaves": ("CL", "Casual"),
@@ -114,8 +114,19 @@ async def handle_leave_intent(intent, OfficeContent, Commonparam):
     }
 
     if intent in leave_map:
+        leave_data = await fetch_leave_summary(OfficeContent, Commonparam)
+
         code, name = leave_map[intent]
         return format_leave_response(leave_data, code, name)
+    
+
+
+    elif intent == "pay_slip":
+        return {
+            "responseCode": "0000",
+            "responseData": "Completed successfully",
+            "message": "pay_slip"
+        }   
 
     elif intent == "apply_leave":
         return {
@@ -125,11 +136,12 @@ async def handle_leave_intent(intent, OfficeContent, Commonparam):
         }
 
     elif intent == "available_leaves":
+        leave_data = await fetch_leave_summary(OfficeContent, Commonparam)
         return leave_data
 
     else:
         
-         {
+         return{
             "responseCode": "0001",
             "responseData": "Something went wrong",
             "message": "Sorry, I didn't understand that."
