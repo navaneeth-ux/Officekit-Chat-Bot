@@ -119,4 +119,22 @@ nlu:
     - Show me my earnings slip
     - Can I view my pay slip?
 
+- intent: upcoming_holidays
+  examples: |
+    - What are the upcoming holidays?
+    - Show me the coming leaves
+    - Which holidays are next?
+    - Tell me the holidays coming up
+    - Next holiday in my calendar
+    - Any holidays left this year?
+    - List upcoming holidays
+    - What are the future holidays?
+    - Do we have any holidays next month?
+    - When is the next leave?
+    - Show me future leaves
+    - Upcoming festival holidays
+    - What holidays are there in the coming days?
+    - Next public holiday
+    - Are there any holidays after Independence Day?
+
 

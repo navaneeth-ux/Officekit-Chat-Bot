@@ -8,7 +8,7 @@ import shutil
 import os
 import httpx
 import json
-import asyncio
+from datetime import datetime
 
 
 
@@ -65,7 +65,7 @@ async def fetch_leave_summary(OfficeContent: dict, Commonparam: dict):
             if isinstance(data, str):
                 data = json.loads(data)
             filtered = [
-                {"LeaveCode": item.get("LeaveCode"), "LeaveBalance": item.get("LeaveBalance")}
+                {"LeaveCode": item.get("Description"), "LeaveBalance": item.get("LeaveBalance")}
                 for item in data if isinstance(item, dict)
             ]
             return {
@@ -84,6 +84,71 @@ async def fetch_leave_summary(OfficeContent: dict, Commonparam: dict):
             "responseData": "Failed to fetch leave compilation",
             "details": response.text
         }
+    
+
+
+# 🔹 Helper to fetch upcoming holidays
+async def fetch_upcoming_holidays(OfficeContent: dict, Commonparam: dict):
+    Commonparam["CurYear"] = str(datetime.now().year)
+
+    url = (
+        "https://m2h.officekithr.net/api/AjaxAPI/GetHolidayList"
+        f"?OfficeContent={json.dumps(OfficeContent)}"
+        f"&Commonparam={json.dumps(Commonparam)}"
+    )
+    print("📤 Request URL:", url)
+
+
+    async with httpx.AsyncClient() as client:
+        response = await client.post(url)
+        print("🔎 Raw Response Text:", response.text)  # 👈 debug
+
+    if response.status_code == 200:
+        try:
+            data = response.json()
+            if isinstance(data, str):
+                data = json.loads(data)
+
+            today = datetime.today().date()
+
+            # 🔹 Filter holidays after today
+            upcoming = []
+            for item in data:
+                try:
+                    from_date = datetime.strptime(item.get("FromDate"), "%d/%m/%Y").date()
+                    if from_date >= today:
+                        upcoming.append({
+                            "Holiday_Name": item.get("Holiday_Name"),
+                            "FromDate": item.get("FromDate"),
+                            "ToDate": item.get("ToDate"),
+                            "RestrictedHoliday": item.get("RestrictedHoliday"),
+                            "PayType": item.get("PayType"),
+                            "Location": item.get("Location")
+                        })
+                except Exception:
+                    continue
+
+            return {
+                "responseCode": "0000",
+                "responseData": "Completed successfully",
+                "upcoming_holidays": upcoming
+            }
+
+        except Exception as e:
+            return {
+                "responseCode": "1002",
+                "responseData": f"Failed to parse JSON: {e}"
+            }
+    else:
+        return {
+            "responseCode": str(response.status_code),
+            "responseData": "Failed to fetch holiday list",
+            "details": response.text
+        }
+
+
+
+    
 
 
 # 🔹 Format leave response uniformly
@@ -104,7 +169,7 @@ def format_leave_response(leave_data, code, leave_name):
 
 
 # 🔹 Handle all leave-related intents
-async def handle_leave_intent(intent, OfficeContent, Commonparam):
+async def handle_intent(intent, OfficeContent, Commonparam):
 
     leave_map = {
         "available_casual_leaves": ("CL", "Casual"),
@@ -119,6 +184,22 @@ async def handle_leave_intent(intent, OfficeContent, Commonparam):
         code, name = leave_map[intent]
         return format_leave_response(leave_data, code, name)
     
+    elif intent == "greet":
+        return {
+            "responseCode": "0000",
+            "responseData": "Completed successfully",
+            "message": "Hi How can I help you"
+        } 
+    
+
+
+    elif intent == "upcoming_holidays":
+        leave_data = await fetch_upcoming_holidays(OfficeContent, Commonparam)
+        return leave_data
+
+    elif intent == "available_leaves":
+        leave_data = await fetch_leave_summary(OfficeContent, Commonparam)
+        return leave_data
 
 
     elif intent == "pay_slip":
@@ -135,9 +216,6 @@ async def handle_leave_intent(intent, OfficeContent, Commonparam):
             "message": "Leave request initiated"
         }
 
-    elif intent == "available_leaves":
-        leave_data = await fetch_leave_summary(OfficeContent, Commonparam)
-        return leave_data
 
     else:
         
@@ -154,7 +232,7 @@ async def analyze_text(input: InputText):
 
     result = await agent.parse_message(input.text)
     intent = result.get("intent", {}).get("name")
-    return await handle_leave_intent(intent, input.OfficeContent, input.Commonparam)
+    return await handle_intent(intent, input.OfficeContent, input.Commonparam)
 
 
 # 🔹 Audio endpoint
@@ -181,4 +259,4 @@ async def analyze_audio(
     intent = result.get("intent", {}).get("name")
     print(f"🎤 intend ========== {intent}")
 
-    return await handle_leave_intent(intent, OfficeContent, Commonparam)
+    return await handle_intent(intent, OfficeContent, Commonparam)

@@ -1,3 +1,19 @@
 version: "3.1"
+
 intents:
+  - greet
+  - pay_slip
   - apply_leave
+  - available_leaves
+  - available_casual_leaves
+  - available_com_leaves
+  - available_sl_leaves
+  - available_lop_leaves
+  - upcoming_holidays   # ✅ newly added
+
+responses:
+  utter_greet:
+    - text: "Hello! How can I help you today?"
+
+  utter_default:
+    - text: "Sorry, I didn't quite understand that. Could you rephrase?"
