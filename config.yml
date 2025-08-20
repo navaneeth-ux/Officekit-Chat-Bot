@@ -1,7 +1,20 @@
 language: en
+
+policies:
+- name: RulePolicy
+  core_fallback_action_name: "utter_default"
+  core_fallback_threshold: 0.3
+  enable_fallback_prediction: true
+
 pipeline:
 - name: WhitespaceTokenizer
+- name: RegexFeaturizer
+- name: LexicalSyntacticFeaturizer
 - name: CountVectorsFeaturizer
 - name: DIETClassifier
   epochs: 100
-assistant_id: 20250807-134648-alternate-cadet
+  constrain_similarities: true
+- name: FallbackClassifier
+  threshold: 0.6              # 👈 raise threshold
+  ambiguity_threshold: 0.1
+assistant_id: 20250819-114323-ancient-shim

@@ -2,18 +2,57 @@ version: "3.1"
 
 intents:
   - greet
-  - pay_slip
   - apply_leave
   - available_leaves
   - available_casual_leaves
   - available_com_leaves
   - available_sl_leaves
   - available_lop_leaves
-  - upcoming_holidays   # ✅ newly added
+  - pay_slip
+  - upcoming_holidays
+  - nlu_fallback   
+  - apply_leave
+
 
 responses:
-  utter_greet:
-    - text: "Hello! How can I help you today?"
-
   utter_default:
-    - text: "Sorry, I didn't quite understand that. Could you rephrase?"
+    - text: "Sorry, I didn't understand that. Could you rephrase?"
+
+entities:
+  - leave_type
+  - leave_from
+  - leave_to
+  - reason
+
+slots:
+  leave_type:
+    type: text
+    influence_conversation: true
+  leave_from:
+    type: text
+  leave_to:
+    type: text
+  reason:
+    type: text
+
+responses:
+  utter_ask_leave_type:
+    - text: "What type of leave do you want? (Casual, Sick, etc.)"
+  utter_ask_leave_from:
+    - text: "From which date do you want to start leave? (e.g. 20/08/2025)"
+  utter_ask_leave_to:
+    - text: "Until which date?"
+  utter_ask_reason:
+    - text: "Please provide a reason for your leave."
+
+forms:
+  apply_leave_form:
+    required_slots:
+      - leave_type
+      - leave_from
+      - leave_to
+      - reason
+
+actions:
+  - action_submit_leave
+

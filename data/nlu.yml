@@ -5,9 +5,7 @@ nlu:
     - I want to apply for leave
     - Can I take a day off?
     - I need leave tomorrow
-    - Please a
-    
-    pprove my vacation request
+    - Please approve my vacation request
     - I’d like to request sick leave
     - Can I take next Friday off?
     - I need a personal day off
@@ -15,15 +13,11 @@ nlu:
     - Can I get a week off next month?
     - I need annual leave from 5th to 10th
 
-
 - intent: greet
   examples: |
     - Hi
     - Hello
     - Hey there
-
-
-
 
 - intent: available_leaves
   examples: |
@@ -39,21 +33,21 @@ nlu:
     - What's my remaining leave quota?
     - How much time off do I have left?
     - Am I eligible for more leave days?
-    - how many leaves available 
+    - how many leaves available
 
 - intent: available_casual_leaves
   examples: |
+    - casual leave
+    - casual leaves
     - I want to know the casual leaves left
     - How many casual leaves do I have?
     - Tell me my casual leave balance
     - Show my CL leaves
     - CL leave balance
     - What is my casual leave balance?
-        # ASR / spelling mistakes
     - How many cashier leaves do I have?
     - Tell me my casher leave balance
     - How many casualy leaves are there?
-
 
 - intent: available_com_leaves
   examples: |
@@ -80,8 +74,6 @@ nlu:
     - sl leaves
     - sick day
     - medical leave
-
-
 
 - intent: available_lop_leaves
   examples: |
@@ -136,5 +128,28 @@ nlu:
     - What holidays are there in the coming days?
     - Next public holiday
     - Are there any holidays after Independence Day?
+
+- intent: out_of_scope
+  examples: |
+    - 123456
+    - asdfgh
+    - blah blah
+    - qwerty
+    - just random text
+
+- intent: pay_slip_of_month
+  examples: |
+    - Show me my payslip for January
+    - Get my salary slip of Feb
+    - I want the payslip for March
+    - Can you fetch my April payslip?
+    - Please show my May salary slip
+    - Payslip of June
+    - Give me the July payslip
+    - August payslip please`
+    - Show September salary slip
+    - My October payslip
+    - Download my November payslip
+    - Salary slip of December
 
 
