@@ -1,58 +1,117 @@
+# domain.yml
+
 version: "3.1"
 
+# All user intents the chatbot should recognize
 intents:
   - greet
   - apply_leave
   - available_leaves
-  - available_casual_leaves
-  - available_com_leaves
-  - available_sl_leaves
-  - available_lop_leaves
-  - pay_slip
   - upcoming_holidays
-  - nlu_fallback   
-  - apply_leave
+  - pay_slip
+  - pay_slip_of_month
+  - available_casual_leaves
+  - available_sl_leaves
+  - available_com_leaves
+  - available_lop_leaves
+  - goodbye
+  - affirm
+  - deny
+  - inform
+  - thanks
+  - bot_challenge
 
-
-responses:
-  utter_default:
-    - text: "Sorry, I didn't understand that. Could you rephrase?"
-
+# Entities to extract from user messages
 entities:
   - leave_type
-  - leave_from
   - leave_to
   - reason
 
+# Slots to store information durinr5asa g a conversation
 slots:
   leave_type:
     type: text
     influence_conversation: true
-  leave_from:
-    type: text
+    mappings:
+      # Automatically fill from a leave_type entity
+      - type: from_entity
+        entity: leave_type
+
+
   leave_to:
     type: text
+    influence_conversation: true
+    mappings:
+      # Automatically fill from a leave_to entity
+      - type: from_entity
+        entity: leave_to
+
+  
   reason:
     type: text
+    influence_conversation: false
+    mappings:
+      - type: from_entity
+        entity: reason
 
+  # Crucial slot for form management
+  requested_slot:
+    type: text
+    influence_conversation: false
+    mappings:
+      - type: custom
+
+# Bot responses
 responses:
-  utter_ask_leave_type:
-    - text: "What type of leave do you want? (Casual, Sick, etc.)"
-  utter_ask_leave_from:
-    - text: "From which date do you want to start leave? (e.g. 20/08/2025)"
-  utter_ask_leave_to:
-    - text: "Until which date?"
-  utter_ask_reason:
-    - text: "Please provide a reason for your leave."
+  utter_greet:
+    - text: "Hello! I'
+    m your assistant. How can I help you today?"
+  
+  utter_bot_challenge:
+    - text: "I am a bot,powered by Officekit HR"
 
+
+  utter_ask_leave_type:
+    - text: "What type of leave would you like to apply for? Please choose from:\n• **Sick** leave\n• **Casual** leave\n• **LOP** (Loss of Pay)"
+
+
+  utter_apply_leave:
+    - text: "What type of leave would you like to apply for? Please choose from:\n• **Sick** leave\n• **Casual** leave\n• **LOP** (Loss of Pay)"
+
+  utter_ask_leave_to:
+    - text: "Please provide the end date of your leave (e.g., 22/08/2025)."
+
+  utter_ask_reason:
+    - text: "What is the reason for your leave?"
+
+  utter_thanks:
+   - text: "You are welcome.It is my pleasure to assist you"  
+
+
+  utter_default:
+    - text: "I didn't understand. Could you please rephrase?"
+  
+  utter_goodbye:
+    - text: "Bye!"  
+
+  utter_submit:
+    - text: "Thank you! Your leave application is being processed."
+
+# List of all custom actions
+actions:
+  - action_say_leave
+  - action_submit_leave
+  - action_check_leave_balance
+
+# Define the forms. The name must be unique.
 forms:
   apply_leave_form:
     required_slots:
       - leave_type
-      - leave_from
       - leave_to
       - reason
 
-actions:
-  - action_submit_leave
-
+# Session configuration
+session_config:
+  session_expiration_time: 60
+  carry_over_slots_to_new_session: true

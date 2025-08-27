@@ -1,17 +1,34 @@
 version: "3.1"
+
 nlu:
 - intent: apply_leave
   examples: |
     - I want to apply for leave
-    - Can I take a day off?
-    - I need leave tomorrow
-    - Please approve my vacation request
-    - I’d like to request sick leave
-    - Can I take next Friday off?
-    - I need a personal day off
-    - I want to apply for 3 days leave starting Monday
-    - Can I get a week off next month?
-    - I need annual leave from 5th to 10th
+    - apply leave
+    - I need leave
+    - request leave
+    - leave application
+    - I want to take leave
+    - to [2024-01-20](leave_to)
+    - until [2024-01-20](leave_to)
+    - [2024-01-20](leave_to)
+    - till [20th January](leave_to)
+    - [personal work](reason)
+    - [fever](reason)
+    - [family function](reason)
+    - [medical appointment](reason)
+    - reason is [personal work](reason)
+    - because of [fever](reason)
+    - [casual](leave_type)
+    - [sick](leave_type) 
+    - [compensatory](leave_type)
+    - [LOP](leave_type)
+    - I want [casual](leave_type) leave
+    - It's a [sick](leave_type) leave
+
+
+
+ 
 
 - intent: greet
   examples: |
@@ -19,8 +36,46 @@ nlu:
     - Hello
     - Hey there
 
+
+- intent: goodbye
+  examples: |
+    - bye
+    - goodbye
+    - good night
+    - see you later
+    - talk to you later
+    - bye bye
+    - take care
+    - see ya
+    - catch you later
+    - good bye
+
+
+- intent: thanks
+  examples: |
+    - thanks
+    - thank you
+    - thanks a lot
+    - thank you very much
+    - thanks so muchh
+    - many thanks
+    - thank you kindly
+    - much appreciated
+    - thanks a ton
+    - thanks a million
+
+
+- intent:  bot_challenge
+  examples: |
+    - are you a Bot?
+    - are you human?
+    - am i talking to a bot?
+    - am i talking to human?
+
+
 - intent: available_leaves
   examples: |
+    - total number of available leave
     - my all leaves
     - How many leaves do I have left?
     - Show me my remaining leave balance
@@ -35,8 +90,19 @@ nlu:
     - Am I eligible for more leave days?
     - how many leaves available
 
+
+
+- intent: affirm
+  examples: |
+    - yes
+    - sure
+    - okay
+
+
+
 - intent: available_casual_leaves
   examples: |
+    - how many casual leave available
     - casual leave
     - casual leaves
     - I want to know the casual leaves left
@@ -58,22 +124,14 @@ nlu:
 
 - intent: available_sl_leaves
   examples: |
-    - sick leaves left
-    - Show me my sick leaves
-    - Do I have sick leave left?
-    - How many sick days do I have?
-    - SL balance
-    - Tell me my sick leave quota
-    - I want to check sick leaves
-    - Remaining SL leaves
-
-- synonym: sick leave
-  examples: |
-    - sick leaf
-    - SL leave
-    - sl leaves
-    - sick day
-    - medical leave
+    - How many sick leaves do I have left?
+    - Show me my sick leave balance
+    - Remaining SL?
+    - Available sick leave?
+    - How many sick leave days are available?
+    - What is my SL balance?
+    - Do I have any sick leaves left?
+    - How many sick leaves do I have?
 
 - intent: available_lop_leaves
   examples: |
@@ -90,6 +148,7 @@ nlu:
 
 - intent: pay_slip
   examples: |
+    - payslip
     - Show me my payslip
     - I want to see my salary slip
     - Download my payslip
@@ -123,7 +182,7 @@ nlu:
     - What are the future holidays?
     - Do we have any holidays next month?
     - When is the next leave?
-    - Show me future leaves
+    - Show future leaves
     - Upcoming festival holidays
     - What holidays are there in the coming days?
     - Next public holiday
@@ -136,6 +195,7 @@ nlu:
     - blah blah
     - qwerty
     - just random text
+    - can i get
 
 - intent: pay_slip_of_month
   examples: |
@@ -146,10 +206,18 @@ nlu:
     - Please show my May salary slip
     - Payslip of June
     - Give me the July payslip
-    - August payslip please`
+    - August payslip please
     - Show September salary slip
     - My October payslip
     - Download my November payslip
     - Salary slip of December
 
+
+
+- intent: goodbye
+  examples: |
+    - bye
+    - goodbye
+    - see you
+    - talk to you later
 

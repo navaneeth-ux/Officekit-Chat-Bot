@@ -1,0 +1,15 @@
+version: "3.1"
+
+
+stories:
+- story: happy path
+  steps:
+    - intent: greet
+    - action: utter_greet
+
+
+
+- story: express Thanks
+  steps:
+    - intent: thanks
+    - action: utter_thanks
