@@ -28,6 +28,16 @@ rules:
       - requested_slot: null
     - action: action_say_leave  
 
+
+  - rule: interruption in simple form
+    condition:
+    - active_loop: apply_leave_form
+    steps:
+    - intent:  bot_challenge
+    - action: utter_bot_challenge
+    - action: apply_leave_form
+    - active_loop: apply_leave_form
+
   # Other rules
 
   - rule: Greet user

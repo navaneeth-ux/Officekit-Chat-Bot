@@ -12,6 +12,9 @@ from datetime import datetime, timedelta
 import calendar
 import re
 from rasa.core.channels.channel import UserMessage
+from rasa.core.channels.channel import CollectingOutputChannel
+from rasa.shared.core.events import SlotSet, AllSlotsReset
+
 
 os.environ["PATH"] += os.pathsep + r"C:\ffmpeg\bin"
 
@@ -145,6 +148,102 @@ def load_model():
 # Backend API helpers
 # -----------------------------
 
+#API TO CALL LEAVE SUBMIT API
+async def submit_leave_application(
+    OfficeContent: dict,
+    Commonparam: dict,
+    leave_type: str,
+    leave_to: str,
+    reason: str
+):
+    Commonparamforleavelist = {"Description": "leavelistApp"}
+
+    url = api_url(Commonparam, "Leavecompilation")
+    url = f"{url}?OfficeContent={json.dumps(OfficeContent)}&Commonparam={json.dumps(Commonparamforleavelist)}"
+    async with httpx.AsyncClient() as client:
+        response = await client.post(url)
+
+     
+
+
+      
+    # ✅ sanitize Commonparam first
+    allowed_keys = {
+        "Mode", "LeaveID", "Leavefrom", "Leaveto", "Offdaysfrom", "Offdaysto",
+        "Noofleavedays", "Timemode", "Reason", "Holiday", "Weekend",
+        "Daysleaveclubbing", "LeavePolicyInstanceLimitID", "Returndate",
+        "Approvalstatus", "Firsthalf", "Lasthalf", "Roledeligation",
+        "Contactaddress", "Contactnumber", "Salaryadvance", "IsNoticePeriod",
+        "Passportrequest", "Roldleavetrantype", "Duallaps", "Balancedaystofuture"
+    }
+    cp = {k: v for k, v in (Commonparam or {}).items() if k in allowed_keys}
+
+    # Build Commonparam payload (leave_from == leave_to)
+    cp.update({
+        "Mode": "save",
+        "LeaveID": 2,   # map to backend leave ID if required
+        "Leavefrom": leave_to,
+        "Leaveto": leave_to,
+        "Offdaysfrom": leave_to,
+        "Offdaysto": leave_to,
+        "Noofleavedays": 1,
+        "Timemode": 1,
+        "Reason": reason,
+        "Holiday": 0,
+        "Weekend": 0,
+        "Daysleaveclubbing": 0,
+        "LeavePolicyInstanceLimitID": 0,
+        "Returndate": leave_to,
+        "Approvalstatus": "P",
+        "Firsthalf": 0,
+        "Lasthalf": 0,
+        "Roledeligation": 0,
+        "Contactaddress": "",
+        "Contactnumber": "",
+        "Salaryadvance": 0,
+        "IsNoticePeriod": 0,
+        "Passportrequest": 0,
+        "Roldleavetrantype": None,
+        "Duallaps": 0,
+        "Balancedaystofuture": 0,
+    })
+
+    # Build full URL with query params
+    url = api_url(Commonparam, "SaveLeaveApplication")
+    url = f"{url}?OfficeContent={json.dumps(OfficeContent)}&Commonparam={json.dumps(cp)}"
+    print("📤 Request URL:", url)
+
+    async with httpx.AsyncClient() as client:
+        response = await client.post(url, timeout=30.0)  # POST without body (all in query string)
+        print("🔎 Raw Response Text:", response.text)
+
+    if response.status_code == 200:
+        try:
+            data = response.json()
+            if isinstance(data, str):
+                data = json.loads(data)
+
+            return {
+                "responseCode": "0000",
+                "responseData": "Leave application submitted successfully",
+                "api_result": data,
+                "submitted": cp,   # debug payload
+            }
+        except Exception as e:
+            return {"responseCode": "1002", "responseData": f"Failed to parse JSON: {e}"}
+    else:
+        return {
+            "responseCode": str(response.status_code),
+            "responseData": "Failed to submit leave application",
+            "details": response.text,
+        }
+
+
+
+
+
+
+
 async def fetch_payroll_periods(OfficeContent: dict, Commonparam: dict):
     Commonparam = dict(Commonparam or {})
     Commonparam["AddNextYear"] = "2025"
@@ -218,6 +317,45 @@ async def fetch_leave_summary(OfficeContent: dict, Commonparam: dict):
             "responseData": "Failed to fetch leave compilation",
             "details": response.text,
         }
+    
+
+#fetch policy data
+
+async def fetch_policy_data(OfficeContent: dict, Commonparam: dict):
+    url = api_url(Commonparam, "GetForm_PolicyData")
+    url = f"{url}?OfficeContent={json.dumps(OfficeContent)}&Commonparam={json.dumps(Commonparam)}"
+    print("📤 Request URL:", url)
+
+    async with httpx.AsyncClient() as client:
+        response = await client.post(url)
+        print("🔎 Raw Response Text:", response.text)
+
+    if response.status_code == 200:
+        try:
+            data = response.json()
+            if isinstance(data, str):  # sometimes backend double-encodes JSON
+                data = json.loads(data)
+
+            return {
+                "responseCode": "0004",
+                "responseData": "Completed successfully",
+                "policy": data,   
+            }
+        except Exception as e:
+            return {
+                "responseCode": "1002",
+                "responseData": f"Failed to parse JSON: {e}",
+                "raw": response.text,   # keep raw text for debugging
+            }
+    else:
+        return {
+            "responseCode": str(response.status_code),
+            "responseData": "Failed to fetch policy data",
+            "details": response.text,
+        }
+    
+
+
 
 async def fetch_upcoming_holidays(OfficeContent: dict, Commonparam: dict):
     cp = dict(Commonparam or {})
@@ -333,6 +471,12 @@ async def handle_intent(intent, OfficeContent, Commonparam, text: str):
     # ------------- UPCOMING HOLIDAYS -------------
     if intent == "upcoming_holidays":
         return await fetch_upcoming_holidays(OfficeContent, Commonparam)
+    
+
+
+    if intent == "policy_data":
+     return await fetch_policy_data(OfficeContent, Commonparam)
+
 
     # ------------- LEAVE SUMMARY -------------
     if intent == "available_leaves":
@@ -431,27 +575,6 @@ async def handle_intent(intent, OfficeContent, Commonparam, text: str):
         # Persist the partial info
         leave_requests[uid] = info
 
-        # Now prompt for the next missing piece
-        if "LeaveID" not in info:
-            return {
-                "responseCode": "0000",
-                "responseData": "Need leave type",
-                "message": "What type of leave would you like to apply? (Casual / Sick / etc.)",
-            }
-
-        if "Leavefrom" not in info or "Leaveto" not in info:
-            return {
-                "responseCode": "0000",
-                "responseData": "Need leave dates",
-                "message": "Please share the dates Eg(08/22/2025)",
-            }
-
-       # if "Reason" not in info:
-            return {
-                "responseCode": "0000",
-                "responseData": "Need reason",
-                "message": "What is the reason for your leave?",
-            }
 
         # All info is present → call API
         try:
@@ -513,7 +636,7 @@ async def handle_intent(intent, OfficeContent, Commonparam, text: str):
     # ------------- FALLBACK -------------
     if intent == "nlu_fallback":
         return {
-            "responseCode": "0002",
+            "responseCode": "0000",
             "responseData": "Fallback triggered",
             "message": "Sorry, I didn’t understand that. Can you rephrase?",
         }
@@ -529,50 +652,222 @@ async def handle_intent(intent, OfficeContent, Commonparam, text: str):
 # Endpoints
 # -----------------------------
 
-@app.post("/analyze/")
-async def analyze_text(input: InputText):
-    result = await agent.parse_message(input.text)
-    intent = result.get("intent", {}).get("name")
-    return await handle_intent(intent, input.OfficeContent, input.Commonparam, input.text)
 
-@app.post("/analyze-rasa/")
+
+@app.post("/analyze-old/")
 async def analyze_rasa(input: InputText):
     sender_id = input.OfficeContent.get("uid", "default_user")
 
-    # Create a UserMessage
-    message = UserMessage(text=input.text, sender_id=sender_id)
-
-    # Handle with Rasa agent
-    responses = await agent.handle_message(message)
-
-    if responses:
-        last_response = responses[-1]
-        return last_response
-    else:
-        return {"responseCode": "0002", "responseData": "Fallback", "message": "No response from Rasa."}
-
-
-@app.post("/analyze-rasas/")
-async def analyze_rasa(input: InputText):
-    sender_id = input.OfficeContent.get("uid", "default_user")
-
-    # Let Rasa always process the message first
-    message = UserMessage(text=input.text, sender_id=sender_id)
-    responses = await agent.handle_message(message)
-
-    # Extract detected intent from tracker state or from responses metadata
-    # (or parse separately ONLY if you don’t call handle_message after)
     nlu_result = await agent.parse_message(input.text)
     intent = nlu_result.get("intent", {}).get("name")
 
     if intent != "apply_leave":
-        # Handle other intents yourself
         return await handle_intent(intent, input.OfficeContent, input.Commonparam, input.text)
 
-    if responses:
-        return responses[-1]
+    # Process message normally
+    message = UserMessage(text=input.text, sender_id=sender_id)
+    await agent.handle_message(message)
+
+    # Get tracker to see what Rasa wants to ask next
+    tracker = await agent.tracker_store.get_or_create_tracker(sender_id)
+    
+    # Get current slot values
+    leave_type = tracker.get_slot("leave_type")
+
+    leave_to = tracker.get_slot("leave_to") 
+    reason = tracker.get_slot("reason")
+    
+    print(f"Current slots - leave_type: {leave_type}, leave_to: {leave_to}, reason: {reason}")
+    
+    # Return the appropriate question based on what's missing
+    if not leave_type:
+        return {
+            "responseCode": "0000",
+            "responseData": "success",
+            "message": "What type of leave would you like to apply for? Please choose from:\n• **Sick** leave\n• **Casual** leave\n• **LOP** (Loss of Pay)"
+        }
+    
+
+
+
+    elif not leave_to:
+        return {
+            "responseCode": "0000",
+            "responseData": "Success",
+            "message": "Please provide the end date of your leave (e.g., MM/DD/YYYY)."
+        }
+    elif not reason:
+        return {
+            "responseCode": "0000",
+            "responseData": "Success",
+            "message": "What is the reason for your leave?"
+        }
     else:
-        return {"responseCode": "0002", "responseData": "Fallback", "message": "No response from Rasa."}
+        # All slots filled - form complete
+
+        api_result = await submit_leave_application(
+            OfficeContent=input.OfficeContent,
+            Commonparam=input.Commonparam,
+            leave_type=leave_type,
+            leave_to=leave_to,
+            reason=reason
+        )
+
+
+        return {
+             
+            "responseCode": "0000",
+            "message": f"✅ Your {leave_type} application until {leave_to} for reason: {reason} has been submitted successfully!",
+            "responseData": "Success",
+            "api_result": api_result   # include API response for debugging
+
+        }
+    
+
+
+@app.post("/analyze/")
+async def analyze_rasa(input: InputText):
+    sender_id = input.OfficeContent.get("uid", "default_user")
+    
+    # Get tracker to inspect form state
+    nlu_result = await agent.parse_message(input.text)
+    intent = nlu_result.get("intent", {}).get("name")
+
+    tracker = await agent.tracker_store.get_or_create_tracker(sender_id)
+    active_form_slot = tracker.get_slot("requested_slot")  # currently requested slot
+    active_form_name = tracker.active_loop.name if tracker.active_loop else None
+      
+    if active_form_name and intent in ["cancel", "nlu_fallback"]:
+     bot_message = await cancel_form(tracker, agent)
+
+     return {
+        "responseCode": "0000",
+        "responseData": "success",
+        "message": bot_message,
+        "slots": {}
+    }
+
+    # Decide whether this message is normal intent or form input
+    if active_form_name:
+
+        message = UserMessage(text=input.text, sender_id=sender_id)
+        await agent.handle_message(message)
+    else:
+        # Normal NLU intent detection
+
+        if intent != "apply_leave":
+            # call your custom handler for other intents
+            return await handle_intent(intent, input.OfficeContent, input.Commonparam, input.text)
+
+        # Process apply_leave normally
+        message = UserMessage(text=input.text, sender_id=sender_id)
+        await agent.handle_message(message)
+
+    # Re-fetch tracker after handling message
+    tracker = await agent.tracker_store.get_or_create_tracker(sender_id)
+    
+    # Get current slot values
+    leave_type = tracker.get_slot("leave_type")
+    leave_to = tracker.get_slot("leave_to")
+    reason = tracker.get_slot("reason")
+
+    # Determine what to ask next based on missing slots
+    if not leave_type:
+        bot_message = (
+            "What type of leave would you like to apply for? Please choose from:\n"
+            "• **Sick** leave\n• **Casual** leave\n• **LOP** (Loss of Pay)"
+        )
+    elif not leave_to:
+        bot_message = "Please provide the end date of your leave (e.g., MM/DD/YYYY)."
+    elif not reason:
+        bot_message = "Can you provide a reason for your leave?"
+    else:
+         api_result = await submit_leave_application(
+            OfficeContent=input.OfficeContent,
+            Commonparam=input.Commonparam,
+            leave_type=leave_type,
+            leave_to=leave_to,
+            reason=reason
+         )
+             # Clear slots after submission
+         await cancel_form(tracker, agent)
+         bot_message = "Application submitted successfully"
+
+    return {
+        "responseCode": "0000",
+        "responseData": "success",
+        "message": bot_message,
+        "slots": {
+            "leave_type": leave_type,
+            "leave_to": leave_to,
+            "reason": reason
+        }
+    }
+
+async def cancel_form(tracker, agent):
+    events = [
+        SlotSet("leave_type", None),
+        SlotSet("leave_from", None),
+        SlotSet("leave_to", None),
+        SlotSet("reason", None),
+        SlotSet("requested_slot", None)
+    ]
+    tracker.active_loop = None
+    for event in events:
+        tracker.update(event)
+    await agent.tracker_store.save(tracker)
+    return "Your leave form has been cancelled. How can I help you now?"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+RASA_URL = "http://localhost:5005/webhooks/rest/webhook"  # adjust if different
+from fastapi import FastAPI, Request
+import requests
+
+@app.post("/analyze-test/")
+async def analyze_test(request: Request):
+    data = await request.json()
+    text = data.get("text", "")
+    office_content = data.get("OfficeContent", {})
+    sender_id = office_content.get("uid", "default_user") 
+    common_param = data.get("Commonparam", {})
+ # extract uid
+
+    # Send user input to Rasa
+    message_payload = {
+        "sender": sender_id,
+        "message": text,
+        "metadata": {
+            "OfficeContent": office_content,
+            "Commonparam": common_param
+        }
+    }
+
+    # Send user input to Rasa
+    rasa_response = requests.post(RASA_URL, json=message_payload)
+    responses = rasa_response.json()
+
+    # Extract only text messages from bot
+    bot_messages = [r.get("text") for r in responses if r.get("text")]
+
+    return {
+        
+        "input_text": text,
+        "intent": responses,
+        "bot_responses": bot_messages
+    }
 
 
 @app.post("/analyze_audio/")

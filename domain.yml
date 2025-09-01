@@ -36,6 +36,12 @@ slots:
       # Automatically fill from a leave_type entity
       - type: from_entity
         entity: leave_type
+      - type: from_text
+        conditions:
+        - active_loop: apply_leave_form
+          requested_slot: leave_type
+
+
 
 
   leave_to:
@@ -49,10 +55,15 @@ slots:
   
   reason:
     type: text
-    influence_conversation: false
+    influence_conversation: true
     mappings:
+      # Automatically fill from a leave_type entity
       - type: from_entity
         entity: reason
+      - type: from_text
+        conditions:
+        - active_loop: apply_leave_form
+          requested_slot: reason
 
   # Crucial slot for form management
   requested_slot:
@@ -77,6 +88,8 @@ responses:
 
   utter_apply_leave:
     - text: "What type of leave would you like to apply for? Please choose from:\n• **Sick** leave\n• **Casual** leave\n• **LOP** (Loss of Pay)"
+
+
 
   utter_ask_leave_to:
     - text: "Please provide the end date of your leave (e.g., 22/08/2025)."

@@ -1,40 +1,91 @@
 version: "3.1"
 
 nlu:
+- intent: available_leaves
+  examples: |
+    - total number of available leaves
+    - my leave balance
+    - How many leaves do I have left?
+    - Show me my remaining leave balance
+    - I want to know my available leaves
+    - What is my available leave?
+    - Tell me how many leave days I can take
+    - Do I have any leaves left?
+    - Check my leave balance
+    - Can I take more leave?
+    - What's my remaining leave quota?
+    - How much time off do I have left?
+    - Am I eligible for more leave days?
+    - how many leaves are available
+    - can I get leave details
+    - Show me my leave details
+    - Display available leave details
+    - Give me details about my remaining leaves
+    - I want to see my leave records
+
 - intent: apply_leave
   examples: |
     - I want to apply for leave
-    - apply leave
-    - I need leave
-    - request leave
-    - leave application
+    - Please apply for my leave
+    - I need to request leave
+    - Submit a leave application
+    - File a leave request
     - I want to take leave
-    - to [2024-01-20](leave_to)
+    - Apply for time off
+    - I would like to request leave
+    - I need leave from [2024-01-20](leave_to)
     - until [2024-01-20](leave_to)
     - [2024-01-20](leave_to)
+    - [08/02/2025](leave_to)
     - till [20th January](leave_to)
-    - [personal work](reason)
-    - [fever](reason)
-    - [family function](reason)
-    - [medical appointment](reason)
     - reason is [personal work](reason)
     - because of [fever](reason)
-    - [casual](leave_type)
-    - [sick](leave_type) 
-    - [compensatory](leave_type)
-    - [LOP](leave_type)
-    - I want [casual](leave_type) leave
-    - It's a [sick](leave_type) leave
+    - [personal work](reason)
+    - [family function](reason)
+    - [medical appointment](reason)
+    - [casual](leave_type) leave
+    - [sick](leave_type) leave
+    - [compensatory](leave_type) leave
+    - [LOP](leave_type) leave
 
 
 
- 
+- intent: policy_data
+  examples: |
+    - I want to know my company policy
+    - Can you tell me the company policies?
+    - Show me the HR policies
+    - What are the leave policies in my company?
+    - Give me details about the company rules
+    - I want to read the company policies
+    - Tell me about my organization’s policy
+    - What policies does my company follow?
+    - Share the employee guidelines
+    - Can I see the workplace policies?
+    - I need to check the company handbook
+    - Explain the company rules and policies
+    - Where can I find the HR guidelines?
+    - Tell me about the office regulations
+    - I want details of the employee policy
+
 
 - intent: greet
   examples: |
     - Hi
     - Hello
     - Hey there
+    - good morning
+    - good afternoon
+
+- intent: cancel
+  examples: |
+    - clear
+    - cancel
+    - stop
+    - never mind
+
+
+  
 
 
 - intent: goodbye
@@ -73,22 +124,7 @@ nlu:
     - am i talking to human?
 
 
-- intent: available_leaves
-  examples: |
-    - total number of available leave
-    - my all leaves
-    - How many leaves do I have left?
-    - Show me my remaining leave balance
-    - I want to know my available leaves.
-    - What is my available leave?
-    - Tell me how many leave days I can take
-    - Do I have any leaves left?
-    - Check my leave balance
-    - Can I take more leave?
-    - What's my remaining leave quota?
-    - How much time off do I have left?
-    - Am I eligible for more leave days?
-    - how many leaves available
+
 
 
 

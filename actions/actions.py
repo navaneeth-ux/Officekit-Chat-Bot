@@ -36,16 +36,20 @@ class ActionSayLeave(Action):
         # Get leave info from slots
         leave_type = tracker.get_slot("leave_type")
         date = tracker.get_slot("leave_to")
+        reason = tracker.get_slot("reason")
+
 
         print("leave_type slot:", leave_type)
         print("leave_to slot:", date)
+        print(" reason", reason)
+
 
         if not leave_type or not date:
             dispatcher.utter_message(text="Some leave information is missing.")
             print("⚠️ Missing info, asked user again")
         else:
             dispatcher.utter_message(
-                text=f"✅ Your leave type is {leave_type} until {date}"
+                text=f"✅ Your leave type is {leave_type} until {date} reason{reason}"
             )
             print("✅ Sent confirmation message to user")
 
