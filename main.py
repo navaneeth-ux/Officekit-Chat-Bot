@@ -14,9 +14,35 @@ import re
 from rasa.core.channels.channel import UserMessage
 from rasa.core.channels.channel import CollectingOutputChannel
 from rasa.shared.core.events import SlotSet, AllSlotsReset
+import logging
+from logging.handlers import RotatingFileHandler
+
 
 
 os.environ["PATH"] += os.pathsep + r"C:\ffmpeg\bin"
+
+logger = logging.getLogger("fastapi-rasa")
+logger.setLevel(logging.INFO)
+
+# Log format
+formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(name)s - %(message)s")
+
+# Console handler
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(formatter)
+
+# Rotating file handler (5 MB max, keep 5 backups)
+file_handler = RotatingFileHandler(
+    "app.log", maxBytes=5 * 1024 * 1024, backupCount=5, encoding="utf-8"
+)
+file_handler.setFormatter(formatter)
+
+# Attach handlers (avoid duplicates if reloaded)
+if not logger.handlers:
+    logger.addHandler(console_handler)
+    logger.addHandler(file_handler)
+
+logger.info("🚀 Logging initialized. FastAPI starting...")
 
 app = FastAPI()
 
@@ -131,6 +157,8 @@ def load_model():
     try:
         model_path = get_latest_model()
         print(f"📦 Loading Rasa model from {model_path}")
+        logger.info("Loading the rasa moodel")
+
         agent = Agent.load(model_path)
     except Exception as e:
         print(f"❌ Failed to load Rasa model: {e}")
@@ -212,6 +240,8 @@ async def submit_leave_application(
     url = api_url(Commonparam, "SaveLeaveApplication")
     url = f"{url}?OfficeContent={json.dumps(OfficeContent)}&Commonparam={json.dumps(cp)}"
     print("📤 Request URL:", url)
+    logger.info(f"📤 Request URL: {url}")
+
 
     async with httpx.AsyncClient() as client:
         response = await client.post(url, timeout=30.0)  # POST without body (all in query string)
