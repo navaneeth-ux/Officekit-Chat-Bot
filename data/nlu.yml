@@ -25,6 +25,8 @@ nlu:
 
 - intent: apply_leave
   examples: |
+    - I want sick leave for [tomorrow](leave_to)
+    - Apply leave until [next Monday](leave_to)
     - I want to apply for leave
     - Please apply for my leave
     - I need to request leave
@@ -47,9 +49,43 @@ nlu:
     - [sick](leave_type) leave
     - [compensatory](leave_type) leave
     - [LOP](leave_type) leave
+    - I want to apply [sick](leave_type) leave
+    - I need [casual](leave_type) leave
+    - Please apply [compensatory](leave_type) leave
+    - Apply for [LOP](leave_type) leave
 
 
 
+- lookup: leave_type
+  examples: |
+    - Sick Leave
+    - Casual Leave
+    - Compensatory Leave
+    - Loss of Pay
+
+- synonym: Sick Leave
+  examples: |
+    - sick
+    - medical
+    - ill
+
+
+
+
+
+- intent: bot_features
+  examples: |
+    - what can you do?
+    - what are your features?
+    - what services do you provide?
+    - how can you help me?
+    - what tasks can you handle?
+    - tell me your capabilities
+    - what kind of things can you do?
+    - can you assist me with office work?
+    - what functions do you support?
+    - list what you can do
+ 
 - intent: policy_data
   examples: |
     - I want to know my company policy

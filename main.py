@@ -16,6 +16,9 @@ from rasa.core.channels.channel import CollectingOutputChannel
 from rasa.shared.core.events import SlotSet, AllSlotsReset
 import logging
 from logging.handlers import RotatingFileHandler
+from datetime import datetime
+import dateparser  
+import time# pip install dateparser
 
 
 
@@ -160,6 +163,7 @@ def load_model():
         logger.info("Loading the rasa moodel")
 
         agent = Agent.load(model_path)
+        
     except Exception as e:
         print(f"❌ Failed to load Rasa model: {e}")
         agent = None
@@ -505,7 +509,38 @@ async def handle_intent(intent, OfficeContent, Commonparam, text: str):
 
 
     if intent == "policy_data":
-     return await fetch_policy_data(OfficeContent, Commonparam)
+      
+      #return await fetch_policy_data(OfficeContent, Commonparam)
+     import pdfplumber
+
+     pdf_path = "documents/leave_policy.pdf"
+     text_content = ""
+     try:
+            with pdfplumber.open(pdf_path) as pdf:
+                for page in pdf.pages:
+                    text_content += page.extract_text() + "\n"
+
+            # Optional truncate to avoid huge response
+            if len(text_content) > 1500:
+                text_content = text_content[:1500] + "... (truncated)"
+
+            bot_message = f"📄 Here’s the leave policy:\n\n{text_content}"
+
+     except Exception as e:
+            bot_message = "⚠️ Sorry, I couldn’t fetch the leave policy right now."
+
+     return {
+            "responseCode": "0000",
+            "responseData": "success",
+            "message": bot_message,
+            "slots": {}
+        }
+
+
+    if intent == "bot_features":
+     return {"responseCode": "0000", "responseData": "Completed successfully",     "message": "I can help you with viewing your payslip, applying for leave, checking company policies, upcoming holidays, and your remaining leave balance."
+      }
+
 
 
     # ------------- LEAVE SUMMARY -------------
@@ -532,9 +567,15 @@ async def handle_intent(intent, OfficeContent, Commonparam, text: str):
         return {
             "responseCode": "0000",
             "responseData": "Completed successfully",
-            "message": "Last month's payslip",
+            "message": "Last generated payslip",
             "salary_slip": salary_slip,
         }
+    
+
+
+
+
+
 
     # ------------- PAY SLIP OF MONTH -------------
     if intent == "pay_slip_of_month":
@@ -760,14 +801,18 @@ async def analyze_rasa(input: InputText):
     sender_id = input.OfficeContent.get("uid", "default_user")
     
     # Get tracker to inspect form state
+    start = time.time()
     nlu_result = await agent.parse_message(input.text)
+    parse_time = time.time() - start
+    
+    print(f"⏱️ parse_message took: {parse_time:.2f}s")  # This will show you the actual delay
     intent = nlu_result.get("intent", {}).get("name")
 
     tracker = await agent.tracker_store.get_or_create_tracker(sender_id)
     active_form_slot = tracker.get_slot("requested_slot")  # currently requested slot
     active_form_name = tracker.active_loop.name if tracker.active_loop else None
       
-    if active_form_name and intent in ["cancel", "nlu_fallback"]:
+    if active_form_name and intent in ["cancel"]:
      bot_message = await cancel_form(tracker, agent)
 
      return {
@@ -800,6 +845,8 @@ async def analyze_rasa(input: InputText):
     leave_type = tracker.get_slot("leave_type")
     leave_to = tracker.get_slot("leave_to")
     reason = tracker.get_slot("reason")
+    if leave_to:
+     leave_to = parse_leave_date(leave_to) if leave_to else None
 
     # Determine what to ask next based on missing slots
     if not leave_type:
@@ -808,9 +855,9 @@ async def analyze_rasa(input: InputText):
             "• **Sick** leave\n• **Casual** leave\n• **LOP** (Loss of Pay)"
         )
     elif not leave_to:
-        bot_message = "Please provide the end date of your leave (e.g., MM/DD/YYYY)."
+        bot_message = "Please provide the end date of your leave (e.g., MM/DD/YYYY).Type 'cancel' if you wish to stop."
     elif not reason:
-        bot_message = "Can you provide a reason for your leave?"
+        bot_message = "Can you provide a reason for your leave?.Type 'cancel' if you wish to stop."
     else:
          api_result = await submit_leave_application(
             OfficeContent=input.OfficeContent,
@@ -857,8 +904,32 @@ async def cancel_form(tracker, agent):
 
 
 
+from datetime import datetime, timedelta
 
+def parse_leave_date(text: str) -> str | None:
+    """Simple date parser with basic relative date handling"""
+    if not text:
+        return None
 
+    text = text.strip().lower()
+    now = datetime.now()  # More accurate than today()
+
+    if text == "today":
+        return now.strftime("%m/%d/%Y")
+    elif text == "tomorrow":
+        return (now + timedelta(days=1)).strftime("%m/%d/%Y")
+
+    try:
+        for fmt in ["%m/%d/%Y", "%d/%m/%Y", "%Y-%m-%d", "%m-%d-%Y"]:
+            try:
+                dt = datetime.strptime(text, fmt)
+                return dt.strftime("%m/%d/%Y")
+            except ValueError:
+                continue
+    except Exception:
+        pass
+
+    return None
 
 
 
@@ -924,6 +995,16 @@ async def analyze_audio(
     print(f"🎤 intent = {intent}")
 
     return await handle_intent(intent, OfficeContent, Commonparam, text)
+
+
+async def parse_with_rasa(text: str):
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            "http://localhost:5005/model/parse",
+            json={"text": text}
+        )
+        return response.json()
+
 
 
 
