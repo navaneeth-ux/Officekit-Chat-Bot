@@ -17,8 +17,12 @@ from rasa.shared.core.events import SlotSet, AllSlotsReset
 import logging
 from logging.handlers import RotatingFileHandler
 from datetime import datetime
-import dateparser  
 import time# pip install dateparser
+import pdfplumber
+from sentence_transformers import SentenceTransformer
+import numpy as np
+from transformers import pipeline
+import uvicorn
 
 
 
@@ -175,6 +179,15 @@ def load_model():
     except Exception as e:
         print(f"❌ Failed to load Whisper model: {e}")
         whisper_model = None
+
+
+    try:
+        build_policy_store("documents/ocompanypolicy.pdf")
+    except Exception as e:
+        print(f"❌ Failed to build policy store: {e}")
+   
+
+        
 
 # -----------------------------
 # Backend API helpers
@@ -511,31 +524,24 @@ async def handle_intent(intent, OfficeContent, Commonparam, text: str):
     if intent == "policy_data":
       
       #return await fetch_policy_data(OfficeContent, Commonparam)
-     import pdfplumber
-
-     pdf_path = "documents/leave_policy.pdf"
-     text_content = ""
+     user_q = text
      try:
-            with pdfplumber.open(pdf_path) as pdf:
-                for page in pdf.pages:
-                    text_content += page.extract_text() + "\n"
-
-            # Optional truncate to avoid huge response
-            if len(text_content) > 1500:
-                text_content = text_content[:1500] + "... (truncated)"
-
-            bot_message = f"📄 Here’s the leave policy:\n\n{text_content}"
-
+        answer, pages = answer_policy_question(user_q)
+        if not answer:
+            bot_message = "Sorry, I couldn’t find anything in the company policy."
+        else:
+            src_txt = f" (see page {', '.join(map(str, pages))})" if pages else ""
+            bot_message = f"{answer}{src_txt}"
      except Exception as e:
-            bot_message = "⚠️ Sorry, I couldn’t fetch the leave policy right now."
+        print(f"RAG error: {e}")
+        bot_message = "⚠️ Sorry, I couldn't look that up right now."
 
      return {
-            "responseCode": "0000",
-            "responseData": "success",
-            "message": bot_message,
-            "slots": {}
-        }
-
+        "responseCode": "0000",
+        "responseData": "success",
+        "message": bot_message,
+        "slots": {}
+     }
 
     if intent == "bot_features":
      return {"responseCode": "0000", "responseData": "Completed successfully",     "message": "I can help you with viewing your payslip, applying for leave, checking company policies, upcoming holidays, and your remaining leave balance."
@@ -854,6 +860,7 @@ async def analyze_rasa(input: InputText):
             "What type of leave would you like to apply for? Please choose from:\n"
             "• **Sick** leave\n• **Casual** leave\n• **LOP** (Loss of Pay)"
         )
+
     elif not leave_to:
         bot_message = "Please provide the end date of your leave (e.g., MM/DD/YYYY).Type 'cancel' if you wish to stop."
     elif not reason:
@@ -881,21 +888,33 @@ async def analyze_rasa(input: InputText):
         }
     }
 
+from rasa.shared.core.events import SlotSet, ActiveLoop
+
 async def cancel_form(tracker, agent):
+    """Properly cancel the active form and reset all slots"""
+  
+    # Create events to properly deactivate the form
     events = [
+        # Deactivate the active loop (form)
+        ActiveLoop(None),
+        # Reset all form-related slots
         SlotSet("leave_type", None),
-        SlotSet("leave_from", None),
+        SlotSet("leave_from", None), 
+
+        
         SlotSet("leave_to", None),
         SlotSet("reason", None),
         SlotSet("requested_slot", None)
     ]
-    tracker.active_loop = None
+    
+    # Apply all events to the tracker
     for event in events:
         tracker.update(event)
+    
+    # Save the updated tracker
     await agent.tracker_store.save(tracker)
+    
     return "Your leave form has been cancelled. How can I help you now?"
-
-
 
 
 
@@ -1004,8 +1023,153 @@ async def parse_with_rasa(text: str):
             json={"text": text}
         )
         return response.json()
+    
 
 
+# loading the policy 
+# ===============================
+# PDF QA Pipeline - Optimized
+# ===============================
+
+import pdfplumber
+from sentence_transformers import SentenceTransformer
+import numpy as np
+from transformers import pipeline
+import faiss
+from sklearn.metrics.pairwise import cosine_similarity
+
+# -------------------------------
+# Globals
+# -------------------------------
+CHUNK_TEXTS = []
+CHUNK_META  = []
+VEC_INDEX = None
+EMBED_MODEL = None
+QA_PIPELINE = None
+
+# -------------------------------
+# 1) Chunking function
+# -------------------------------
+def _chunk(text: str, chunk_size=1000, overlap=400):
+    """Split long text into overlapping chunks for better QA context."""
+    chunks = []
+    start = 0
+    step = chunk_size - overlap
+    while start < len(text):
+        end = min(start + chunk_size, len(text))
+        chunks.append(text[start:end])
+        start += step if step > 0 else chunk_size
+        if start >= len(text):
+            break
+    return chunks
+
+# -------------------------------
+# 2) Build FAISS store
+# -------------------------------
+def build_policy_store(pdf_path="documents/ocompanypolicy.pdf"):
+    """
+    Load PDF, extract text, create embeddings, and build FAISS index.
+    """
+    global CHUNK_TEXTS, CHUNK_META, VEC_INDEX, EMBED_MODEL, QA_PIPELINE
+    CHUNK_TEXTS, CHUNK_META = [], []
+
+    # 1) Extract text from PDF
+    with pdfplumber.open(pdf_path) as pdf:
+        chunk_id = 0
+        for pageno, page in enumerate(pdf.pages, start=1):
+            page_text = page.extract_text() or ""
+            if not page_text.strip():
+                continue
+            for frag in _chunk(page_text):
+                CHUNK_TEXTS.append(frag)
+                CHUNK_META.append({"page": pageno, "chunk_id": chunk_id})
+                chunk_id += 1
+
+    # 2) Embeddings
+    EMBED_MODEL = SentenceTransformer("all-MiniLM-L6-v2")
+    embs = EMBED_MODEL.encode(CHUNK_TEXTS, show_progress_bar=True)
+    embs = np.array(embs).astype("float32")
+
+    # 3) FAISS index
+    VEC_INDEX = faiss.IndexFlatL2(embs.shape[1])
+    VEC_INDEX.add(embs)
+
+    # 4) Generative QA pipeline (Flan-T5)
+    QA_PIPELINE = pipeline("text2text-generation", model="google/flan-t5-base", device=-1)
+
+    print(f"📑 Indexed {len(CHUNK_TEXTS)} chunks from company policy PDF")
+
+# -------------------------------
+# 3) Vector search
+# -------------------------------
+def _search_vectors(query: str, top_k=7):
+    """
+    Retrieve top chunks relevant to the query and re-rank using cosine similarity.
+    Returns a list of (text, meta, score) tuples.
+    """
+    if VEC_INDEX is None or EMBED_MODEL is None:
+        return []
+
+    # Encode query
+    q_emb = EMBED_MODEL.encode(query).astype("float32")
+
+    # Search FAISS (get extra candidates for re-ranking)
+    D, I = VEC_INDEX.search(np.array([q_emb]), top_k * 3)
+
+    candidates = []
+    for idx, dist in zip(I[0], D[0]):
+        if idx < 0 or idx >= len(CHUNK_TEXTS):
+            continue
+        candidates.append((CHUNK_TEXTS[idx], CHUNK_META[idx]))
+
+    if not candidates:
+        return []
+
+    # Re-rank using cosine similarity
+    cand_texts = [text for text, meta in candidates]
+    cand_embs = EMBED_MODEL.encode(cand_texts).astype("float32")
+    sims = cosine_similarity(q_emb.reshape(1, -1), cand_embs)[0]
+
+    # Return ranked top_k tuples
+    ranked = sorted(
+        [(text, meta, float(sim)) for (text, meta), sim in zip(candidates, sims)],
+        key=lambda x: x[2],
+        reverse=True
+    )
+
+    return ranked[:top_k]
+
+# -------------------------------
+# 4) Answer a question
+# -------------------------------
+def answer_policy_question(question: str, top_k=7):
+    """
+    Answer a policy question using retrieved chunks and generative QA.
+    Returns full answer and pages where info came from.
+    """
+    try:
+        # Retrieve top relevant chunks
+        retrieved = _search_vectors(question, top_k=top_k)
+        if not retrieved:
+            return "Sorry, I couldn't find anything in the policy.", []
+
+        # Combine chunk texts into single context
+        context = " \n".join([item[0] for item in retrieved])
+        pages = sorted({item[1]["page"] for item in retrieved})
+
+        # Generate coherent answer
+        input_text = f"Answer the question based on the context:\nContext: {context}\nQuestion: {question}"
+        result = QA_PIPELINE(input_text, max_length=512, do_sample=False)[0]["generated_text"]
+
+        return result, pages
+
+    except Exception as e:
+        print("RAG error:", e)
+        return "⚠️ Sorry, something went wrong in the policy lookup.", []
+
+
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
 
 
 

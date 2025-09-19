@@ -88,22 +88,25 @@ nlu:
  
 - intent: policy_data
   examples: |
-    - I want to know my company policy
-    - Can you tell me the company policies?
-    - Show me the HR policies
-    - What are the leave policies in my company?
-    - Give me details about the company rules
-    - I want to read the company policies
-    - Tell me about my organization’s policy
-    - What policies does my company follow?
-    - Share the employee guidelines
-    - Can I see the workplace policies?
-    - I need to check the company handbook
-    - Explain the company rules and policies
-    - Where can I find the HR guidelines?
-    - Tell me about the office regulations
-    - I want details of the employee policy
-
+    # Leave
+    - What is the leave policy?
+    - How many sick leaves am I entitled to?
+    - Can casual leave be carried forward?
+    - What is the maternity leave duration?
+    - How do I apply for unpaid leave?
+    # Travel / reimbursement
+    - Tell me about travel reimbursement
+    - How do I claim travel expenses?
+    - Are taxi fares reimbursed?
+    # Holidays
+    - What is the holiday policy?
+    - How many public holidays are allowed?
+    # Benefits
+    - What insurance benefits are available?
+    - How does the medical reimbursement work?
+    # Probation / termination
+    - What happens during probation regarding leaves?
+    - Can I resign during probation?  
 
 - intent: greet
   examples: |

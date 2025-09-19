@@ -20,12 +20,15 @@ intents:
   - inform
   - thanks
   - bot_challenge
+  - policy_data
 
 # Entities to extract from user messages
 entities:
   - leave_type
+  - leave_from
   - leave_to
   - reason
+  
 
 # Slots to store information durinr5asa g a conversation
 slots:
